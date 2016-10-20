@@ -1184,10 +1184,47 @@ int ss_sha1_hmac_with_key(char *auth, char *msg, int msg_len, uint8_t *auth_key,
     return 0;
 }
 
+int ss_md5_hmac(char *auth, char *msg, int msg_len, uint8_t *iv)
+{
+    uint8_t hash[MD5_BYTES * 2];
+    uint8_t auth_key[MAX_IV_LENGTH + MAX_KEY_LENGTH];
+    memcpy(auth_key, iv, enc_iv_len);
+    memcpy(auth_key + enc_iv_len, enc_key, enc_key_len);
+
+#if defined(USE_CRYPTO_OPENSSL)
+    HMAC(EVP_md5(), auth_key, enc_iv_len + enc_key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash, NULL);
+#elif defined(USE_CRYPTO_MBEDTLS)
+    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), auth_key, enc_iv_len + enc_key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash);
+#else
+    md5_hmac(auth_key, enc_iv_len + enc_key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash);
+#endif
+
+    memcpy(auth, hash, MD5_BYTES);
+
+    return 0;
+}
+
+int ss_md5_hmac_with_key(char *auth, char *msg, int msg_len, uint8_t *auth_key, int key_len)
+{
+    uint8_t hash[MD5_BYTES * 2];
+
+#if defined(USE_CRYPTO_OPENSSL)
+    HMAC(EVP_md5(), auth_key, key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash, NULL);
+#elif defined(USE_CRYPTO_MBEDTLS)
+    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), auth_key, key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash);
+#else
+    md5_hmac(auth_key, key_len, (uint8_t *)msg, msg_len, (uint8_t *)hash);
+#endif
+
+    memcpy(auth, hash, MD5_BYTES);
+
+    return 0;
+}
+
 int ss_aes_128_cbc(char *encrypt, char *out_data,char *key)
 {
 
-  unsigned char iv[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    unsigned char iv[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 #if defined(USE_CRYPTO_OPENSSL)
     AES_KEY aes;
@@ -1206,6 +1243,18 @@ int ss_aes_128_cbc(char *encrypt, char *out_data,char *key)
     mbedtls_aes_crypt_cbc( &aes, MBEDTLS_AES_ENCRYPT, 16, iv, encrypt, output );
 
     memcpy(out_data, output, 16);
+#else
+
+    aes_context aes;
+
+    unsigned char input [16];
+    unsigned char output[16];
+
+    aes_setkey_enc( &aes, key, 128 );
+    aes_crypt_cbc( &aes, MBEDTLS_AES_ENCRYPT, 16, iv, encrypt, output );
+
+    memcpy(out_data, output, 16);
+
 #endif
 
     return 0;
