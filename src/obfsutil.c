@@ -23,4 +23,3 @@ uint64_t xorshift128plus(void) {
     shift128plus_s[1] = x;
     return x + y;
 }
-

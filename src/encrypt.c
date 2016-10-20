@@ -31,11 +31,13 @@
 #include <openssl/md5.h>
 #include <openssl/rand.h>
 #include <openssl/hmac.h>
+#include <openssl/aes.h>
 
 #elif defined(USE_CRYPTO_POLARSSL)
 
 #include <polarssl/md5.h>
 #include <polarssl/sha1.h>
+#include <polarssl/aes.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/version.h>
@@ -55,6 +57,7 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/version.h>
+#include <mbedtls/aes.h>
 #define CIPHER_UNSUPPORTED "unsupported"
 
 #include <time.h>
@@ -1177,6 +1180,33 @@ int ss_sha1_hmac_with_key(char *auth, char *msg, int msg_len, uint8_t *auth_key,
 #endif
 
     memcpy(auth, hash, ONETIMEAUTH_BYTES);
+
+    return 0;
+}
+
+int ss_aes_128_cbc(char *encrypt, char *out_data,char *key)
+{
+
+  unsigned char iv[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+#if defined(USE_CRYPTO_OPENSSL)
+    AES_KEY aes;
+
+    AES_set_encrypt_key((unsigned char*)key, 128, &aes);
+
+    AES_cbc_encrypt((const unsigned char *)encrypt, (unsigned char *)out_data, 16, &aes, iv, AES_ENCRYPT);
+
+#elif defined(USE_CRYPTO_MBEDTLS)
+    mbedtls_aes_context aes;
+
+    unsigned char input [16];
+    unsigned char output[16];
+
+    mbedtls_aes_setkey_enc( &aes, key, 128 );
+    mbedtls_aes_crypt_cbc( &aes, MBEDTLS_AES_ENCRYPT, 16, iv, encrypt, output );
+
+    memcpy(out_data, output, 16);
+#endif
 
     return 0;
 }

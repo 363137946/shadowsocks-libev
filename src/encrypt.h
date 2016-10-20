@@ -192,6 +192,7 @@ unsigned char *enc_md5(const unsigned char *d, size_t n, unsigned char *md);
 
 int ss_sha1_hmac(char *auth, char *msg, int msg_len, uint8_t *iv);
 int ss_sha1_hmac_with_key(char *auth, char *msg, int msg_len, uint8_t *auth_key, int key_len);
+int ss_aes_128_cbc(char *encrypt, char *out_data,char *key);
 int ss_onetimeauth(buffer_t *buf, uint8_t *iv, size_t capacity);
 int ss_onetimeauth_verify(buffer_t *buf, uint8_t *iv);
 
